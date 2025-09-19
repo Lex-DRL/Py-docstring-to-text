@@ -1,0 +1,30 @@
+[build-system]
+requires = ["hatchling >= 1.26"]
+build-backend = "hatchling.build"
+
+[project]
+name = "docstring-to-text"
+dynamic = ["version"]
+# version = "0.0.1"
+description = "A simple pip package converting docstrings into clean text (proper paragraphs and indents)"
+authors = [
+	{ name="Lex Darlog (Lex-DRL)" },
+]
+readme = "README.md"
+# https://packaging.python.org/en/latest/specifications/core-metadata/#license-expression
+# https://spdx.org/licenses/
+license = "MPL-2.0"
+license-files = ["LICEN[CS]E*"]
+requires-python = ">=3.7"
+classifiers = [
+	"Programming Language :: Python :: 3",
+	"Operating System :: OS Independent",
+	"License :: OSI Approved :: Mozilla Public License 2.0 (MPL 2.0)",
+]
+
+[project.urls]
+Homepage = "https://github.com/Lex-DRL/Py-docstring-to-text"
+Issues = "https://github.com/Lex-DRL/Py-docstring-to-text/issues"
+
+[tool.hatch.version]
+path = "src/docstring_to_text/__package_meta.py"
