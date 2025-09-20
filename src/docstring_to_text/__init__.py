@@ -11,6 +11,21 @@ import re as _re
 from .__package_meta import VERSION
 from .__package_meta import VERSION as __version__
 
+# TODO:
+# - lists
+#   formatted with indents
+#   in all lines except for the first one
+#
+# Also...
+#   - preserve indents
+#   - of the entire list
+#
+# And...
+#   - ensure
+#     that
+#     - it all works
+#       with nested lists
+
 
 _re_indent_match = _re.compile(r"(\t*)( +)(\t*)(.*?)$").match
 _re_tab_indent_match = _re.compile(r"(\t+)(.*?)$").match
