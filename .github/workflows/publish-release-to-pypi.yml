@@ -15,6 +15,7 @@
 name: Publish Python 🐍 distribution 📦 to PyPI
 
 # ======= TRIGGERS =======
+
 on:
   push:
     tags:
@@ -25,14 +26,14 @@ on:
       - '[0-9]+.[0-9]**'
 
 # ======= ENV VARS =======
+
 env:
   # The name on PyPI:
   PACKAGE_NAME: 'docstring-to-text'
 
 # ========= JOBS =========
-jobs:
 
-  # --------------------------------------------------------
+jobs:
 
   parse-tag:
     # https://emojidb.org/query-emojis
@@ -44,7 +45,10 @@ jobs:
       suffix: ${{ steps.parse.outputs.suffix }}
       tag_name: ${{ steps.parse.outputs.tag_name }}
     steps:
-      - uses: actions/checkout@v2
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Fetch full history to avoid issues with tags and branches
 
       - name: Parse tag into Version and Suffix
         id: parse
@@ -97,44 +101,49 @@ jobs:
 
   # --------------------------------------------------------
 
-#  build:
-#    name: Build distribution 📦
-#  # Just to be nice - let's check the GitHub user and prevent unwanted auto-runs on forks made solely for a PR.
-#    if: >-
-#      github.repository_owner == 'Lex-DRL'
-#    # Second condition: only run on tag pushes...
-#    # It was in the template from official tutorial, but it got redundant, since the only trigger is `on.push.tags`
-#    #  && startsWith(github.ref, 'refs/tags/v')
-#    runs-on: ubuntu-latest
-#
-#    steps:
-#    - uses: actions/checkout@v4
-#      with:
-#        persist-credentials: false
-#    - name: Set up Python
-#      uses: actions/setup-python@v5
-#      with:
-#        python-version: "3.x"
-#
-#    - name: Install pypa/build
-#      run: >-
-#        python3 -m
-#        pip install
-#        build
-#        --user
-#    - name: Build a binary wheel and a source tarball
-#      run: python3 -m build
-#    - name: Store the distribution packages
-#      uses: actions/upload-artifact@v4
-#      with:
-#        name: python-package-distributions
-#        path: dist/
+  build:
+    name: Build distribution 📦
+    needs: [parse-tag]  # No need to even try, if we failed tag parsing
+    # Just to be nice - let's check the GitHub user and prevent unwanted auto-runs on forks made solely for a PR.
+    if: >-
+      github.repository_owner == 'Lex-DRL'
+    # Second condition: only run on tag pushes...
+    # It was in the template from official tutorial, but it got redundant, since the only trigger is `on.push.tags`
+    #  && startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+      with:
+        persist-credentials: false
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.x"
+
+    - name: Install pypa/build
+      run: >-
+        python3 -m
+        pip install
+        build
+        --user
+
+    - name: Build a binary wheel and a source tarball
+      run: python3 -m build
+
+    - name: Store the distribution packages
+      uses: actions/upload-artifact@v4
+      with:
+        name: python-package-distributions
+        path: dist/
 
   # --------------------------------------------------------
 
 #  publish-to-pypi:
 #    name: >-
-#      Publish Python 🐍 distribution 📦 to PyPI
+#      Publish Python 🐍 distribution 📦 to PyPI ⬆️
 #    if: ${{ github.repository_owner == 'Lex-DRL' }}
 #    needs:
 #    - build  # Requires the previous 'build' job to succeed
@@ -152,13 +161,14 @@ jobs:
 #      with:
 #        name: python-package-distributions
 #        path: dist/
+#
 #    - name: Publish distribution 📦 to PyPI
 #      uses: pypa/gh-action-pypi-publish@release/v1
 
   # --------------------------------------------------------
 
 #  publish-to-testpypi:
-#    name: Publish Python 🐍 distribution 📦 to TestPyPI
+#    name: Publish Python 🐍 distribution 📦 to TestPyPI ❗
 #    if: ${{ github.repository_owner == 'Lex-DRL' }}
 #    needs:
 #    - build  # Requires the previous 'build' job to succeed
@@ -179,7 +189,39 @@ jobs:
 #      with:
 #        name: python-package-distributions
 #        path: dist/
+#
 #    - name: Publish distribution 📦 to TestPyPI
 #      uses: pypa/gh-action-pypi-publish@release/v1
 #      with:
 #        repository-url: https://test.pypi.org/legacy/
+
+  # --------------------------------------------------------
+
+  github_release:
+      name: Create GitHub Release 🔄
+      needs: [build, parse-tag]
+      runs-on: ubuntu-latest
+      permissions:
+        contents: write
+      steps:
+        - name: Checkout Code
+          uses: actions/checkout@v4
+          with:
+            fetch-depth: 0 # Fetch full history to avoid issues with tags and branches
+
+        - name: Download artifacts
+          uses: actions/download-artifact@v4
+          with:
+            name: python-package-distributions
+            path: dist/
+
+        - name: Create GitHub Release
+          id: create_release
+          env:
+            GH_TOKEN: ${{ github.token }}
+          run: >-
+            gh release create
+            ${{ needs.parse-tag.outputs.tag_name }}
+            dist/*
+            --title ${{ needs.parse-tag.outputs.tag_name }}
+            --generate-notes
