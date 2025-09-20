@@ -16,44 +16,64 @@ name: Publish Python 🐍 distribution 📦 to PyPI
 
 # ======= TRIGGERS =======
 
+#on:
+#  push:
+#    tags:
+#      # Trigger on tags with '[v]<int>.<int>whatever' pattern: 'v1.0.0', 'v2.1.4', etc
+#      # https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax#filter-pattern-cheat-sheet
+#      # https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax#onpushbranchestagsbranches-ignoretags-ignore
+#      - 'v[0-9]+.[0-9]**'
+#      - '[0-9]+.[0-9]**'
+
 on:
+  workflow_dispatch:
   push:
-    tags:
-      # Trigger on tags with '[v]<int>.<int>whatever' pattern: 'v1.0.0', 'v2.1.4', etc
-      # https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax#filter-pattern-cheat-sheet
-      # https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax#onpushbranchestagsbranches-ignoretags-ignore
-      - 'v[0-9]+.[0-9]**'
-      - '[0-9]+.[0-9]**'
+    branches:
+      - main
+    paths:
+      - "src/docstring_to_text/__package_meta.py"
 
 # ======= ENV VARS =======
 
 env:
   # The name on PyPI:
   PACKAGE_NAME: 'docstring-to-text'
+  VERSION_MODULE: 'src.docstring_to_text.__package_meta'
+  VERSION_VARIABLE: 'VERSION'
+
 
 # ========= JOBS =========
 
 jobs:
 
-  parse-tag:
+  detect-version:
     # https://emojidb.org/query-emojis
-    name: Detect version from tag 🔢
+    name: Parse version 🔢 + add Tag 🏷️
     if: ${{ github.repository_owner == 'Lex-DRL' }}
     runs-on: ubuntu-latest
+    permissions:
+      contents: write  # Needed for tag creation
     outputs:
-      new_version: ${{ steps.parse.outputs.new_version }}
-      suffix: ${{ steps.parse.outputs.suffix }}
       tag_name: ${{ steps.parse.outputs.tag_name }}
+      version_full: ${{ steps.parse.outputs.version_full }}
+      version_num: ${{ steps.parse.outputs.version_num }}
+      suffix: ${{ steps.parse.outputs.suffix }}
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0 # Fetch full history to avoid issues with tags and branches
 
-      - name: Parse tag into Version and Suffix
+      - name: Extract version from package meta 📝
+        id: get_version_string
+        run: |
+          # VERSION=$(grep -oP 'VERSION\s*=\s*["'\'']\K[^"'\'']+' src/docstring_to_text/__package_meta.py)
+          VERSION=$(python -c "from ${{ env.VERSION_MODULE }} import ${{ env.VERSION_VARIABLE }}; print(${{ env.VERSION_VARIABLE }})")
+          echo "Version string: $VERSION"
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+
+      - name: Parse Version 🧱
         id: parse
-        # `$GITHUB_REF`: contains something like 'refs/tags/v1.2.3-alpha1'
-        # `${GITHUB_REF#refs/tags/}`: ${var#prefix} - query $GITHUB_REF, remove 'refs/tags/' prefix
         # The main magic happens in regexps...
         # - `grep -qP`: verify that the tag matches the given pattern
         # - `sed -E 's/regex_pattern/replacement/optional_flags'`, with '\1' in replacement meaning first group
@@ -69,41 +89,56 @@ jobs:
         #   - '(...)?$' - a group that might be present or not.
         #   - '$' - the end of the input string.
         run: |
-          if [ "${{ github.ref_type }}" = "tag" ]; then
-            TAG_NAME=${GITHUB_REF#refs/tags/}
-            echo "Tag name: $TAG_NAME"
-            if echo "$TAG_NAME" | grep -qP '^v?[0-9]+\.[0-9]+\.[0-9]+(-.+)?$'; then
-              NEW_VERSION=$(echo "$TAG_NAME" | sed -E 's/^v?([0-9]+\.[0-9]+\.[0-9]+)(-.+)?$/\1/')
-              echo "Version: $NEW_VERSION"
-              if echo "$TAG_NAME" | grep -q '-'; then
-                # We can only get into this branch if the initial grep regex worked AND '-' is there
-                # So it's '[v]1.2.3-something'
-                SUFFIX=$(echo "$TAG_NAME" | sed -E 's/^v?([0-9]+\.[0-9]+\.[0-9]+)-(.+)$/\2/')
-                if echo "$SUFFIX" | grep -q '-'; then
-                  echo "Invalid suffix (it contains hyphen): $SUFFIX" >&2
-                  exit 1
-                fi
-              else
-                SUFFIX=""
+          VERSION_STR="${{ steps.get_version_string.outputs.version }}"
+          echo "Version string: $VERSION_STR"
+          if echo "$VERSION_STR" | grep -qP '^v?[0-9]+\.[0-9]+\.[0-9]+(-.+)?$'; then
+            VERSION_NUMBER=$(echo "$VERSION_STR" | sed -E 's/^v?([0-9]+\.[0-9]+\.[0-9]+)(-.+)?$/\1/')
+            echo "Version number: $VERSION_NUMBER"
+            if echo "$VERSION_STR" | grep -q '-'; then
+              # We can only get into this branch if the initial grep regex worked AND '-' is there
+              # So it's '[v]1.2.3-something'
+              SUFFIX=$(echo "$VERSION_STR" | sed -E 's/^v?([0-9]+\.[0-9]+\.[0-9]+)-(.+)$/\2/')
+              if echo "$SUFFIX" | grep -q '-'; then
+                echo "Invalid suffix (it contains hyphen): $SUFFIX" >&2
+                exit 1
               fi
-              echo "Suffix: $SUFFIX"
+              SUFFIX_WITH_SEP=$(echo "-$SUFFIX")
             else
-              echo "Tag doesn't match the '[v]1.2.3[-suffix]' pattern: $TAG_NAME" >&2
-              exit 1
+              SUFFIX=""
+              SUFFIX_WITH_SEP=""
             fi
-            echo "new_version=$NEW_VERSION" >> "$GITHUB_OUTPUT"
-            echo "suffix=$SUFFIX" >> "$GITHUB_OUTPUT"
-            echo "tag_name=$TAG_NAME" >> "$GITHUB_OUTPUT"
+            echo "Suffix: $SUFFIX"
           else
-            echo "No tag found" >&2
+            echo "Version string doesn't match the '[v]1.2.3[-suffix]' pattern: $VERSION_STR" >&2
             exit 1
           fi
+          VERSION_FULL=$(echo "${VERSION_NUMBER}${SUFFIX_WITH_SEP}")
+          echo "Full parsed Version: $VERSION_FULL"
+          TAG_NAME=$(echo "v${VERSION_FULL}")
+          echo "Tag name: $TAG_NAME"
+          echo "tag_name=$TAG_NAME" >> "$GITHUB_OUTPUT"
+          echo "version_full=$VERSION_FULL" >> "$GITHUB_OUTPUT"
+          echo "version_num=$VERSION_NUMBER" >> "$GITHUB_OUTPUT"
+          echo "suffix=$SUFFIX" >> "$GITHUB_OUTPUT"
+
+      - name: Create tag 🏷️ from version
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.git.createRef({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: `refs/tags/${process.env.TAG}`,
+              sha: context.sha
+            })
+        env:
+          TAG: ${{ steps.parse.outputs.tag_name }}
 
   # --------------------------------------------------------
 
   build:
     name: Build distribution 📦
-    needs: [parse-tag]  # No need to even try, if we failed tag parsing
+    needs: [detect-version]  # No need to even try, if we failed tag parsing
     # Just to be nice - let's check the GitHub user and prevent unwanted auto-runs on forks made solely for a PR.
     if: >-
       github.repository_owner == 'Lex-DRL'
@@ -199,7 +234,7 @@ jobs:
 
   github_release:
       name: Create GitHub Release 🔄
-      needs: [build, parse-tag]
+      needs: [build, detect-version]
       runs-on: ubuntu-latest
       permissions:
         contents: write
@@ -221,7 +256,7 @@ jobs:
             GH_TOKEN: ${{ github.token }}
           run: >-
             gh release create
-            ${{ needs.parse-tag.outputs.tag_name }}
+            ${{ needs.detect-version.outputs.tag_name }}
             dist/*
-            --title ${{ needs.parse-tag.outputs.tag_name }}
+            --title ${{ needs.detect-version.outputs.tag_name }}
             --generate-notes
