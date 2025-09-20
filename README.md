@@ -19,12 +19,14 @@ class MyClass:
   to preserve paragraphs themselves.
   
   Also, when it comes to lists:
-  - You probably want to separate items
+    - You probably want to separate items
     with new lines.
-  - However, you don't want to preserve
+    - However, you don't want to preserve
     lines inside each item.
-  * And you might need various bullet
-    characters.
+  
+  And...
+  * ... you might need various bullet
+  characters.
   • Including unicode ones.
   
   And don't forget that the list still needs
@@ -50,7 +52,8 @@ You can't just remove all the new lines in the entire string, because you want t
 Also, when it comes to lists:
 - You probably want to separate items with new lines.
 - However, you don't want to preserve lines inside each item.
-* And you might need various bullet characters.
+And...
+* ... you might need various bullet characters.
 • Including unicode ones.
 And don't forget that the list still needs to be separated from the following text.
 ```
