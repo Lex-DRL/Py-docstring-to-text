@@ -7,13 +7,22 @@ A simple pip package converting docstrings into clean text (proper paragraphs an
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-import typing as _t
+__all__ = [
+	'cleandoc', 'getdoc',  # A pass-forward import - just to make it readily available for ease of use
+	'DocstringToText',
+	'IN_BULLETS', 'IN_BULLETS_WITH_LONG_DASHES', 'OUT_BULLETS',
+	# 'T', 'VERSION', 'VERSION_TUPLE',  # Intentionally excluded - to prevent overrides on wildcard import
+]
 
 from inspect import cleandoc, getdoc
-import re as _re
 
-from .___package_meta import VERSION
-from .___package_meta import VERSION as __version__
+from .___package_meta import VERSION, VERSION_TUPLE
+# noinspection PyPep8Naming
+from .___package_meta import VERSION_TUPLE as __version__  # For better compatibility
+
+from ._processor import DocstringToText, IN_BULLETS, IN_BULLETS_WITH_LONG_DASHES, OUT_BULLETS, T
+# Make these available outside, but only with explicit import:
+from .__parsed_line import ParsedLine as _ParsedLine, BlockType as _BlockType
 
 # TODO:
 # - lists
@@ -30,6 +39,10 @@ from .___package_meta import VERSION as __version__
 #     - it all works
 #       with nested lists
 
+
+import typing as _t
+
+import re as _re
 
 _re_indent_match = _re.compile(r"(\t*)( +)(\t*)(.*?)$").match
 _re_tab_indent_match = _re.compile(r"(\t+)(.*?)$").match
