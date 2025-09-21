@@ -33,14 +33,23 @@ on:
     paths:
       - "src/docstring_to_text/__package_meta.py"
 
+# ====== CONCURRENCY ======
+
+# Prevent multiple simultaneous builds for the same version:
+concurrency:
+  group: pypi-publish
+  # To group by version:
+  #group: pypi-publish-${{ github.ref }}-${{ hashFiles('src/docstring_to_text/__package_meta.py') }}
+  cancel-in-progress: false  # the second pending run is put into a queue, the third one is cancelled (GitHub limitation)
+
 # ======= ENV VARS =======
 
 env:
   # The name on PyPI:
   PACKAGE_NAME: 'docstring-to-text'
+  VERSION_FILE: 'src/docstring_to_text/__package_meta.py'
   VERSION_MODULE: 'src.docstring_to_text.__package_meta'
   VERSION_VARIABLE: 'VERSION'
-
 
 # ========= JOBS =========
 
@@ -48,7 +57,8 @@ jobs:
 
   detect-version:
     # https://emojidb.org/query-emojis
-    name: Parse version 🔢 + add Tag 🏷️
+    name: Parse version 🔢
+    # Just to be nice - let's check the GitHub user and prevent unwanted auto-runs on forks made solely for a PR:
     if: ${{ github.repository_owner == 'Lex-DRL' }}
     runs-on: ubuntu-latest
     permissions:
@@ -64,15 +74,53 @@ jobs:
         with:
           fetch-depth: 0 # Fetch full history to avoid issues with tags and branches
 
-      - name: Extract version from package meta 📝
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Extract version 🔢 from package meta 📝
         id: get_version_string
         run: |
-          # VERSION=$(grep -oP 'VERSION\s*=\s*["'\'']\K[^"'\'']+' src/docstring_to_text/__package_meta.py)
-          VERSION=$(python -c "from ${{ env.VERSION_MODULE }} import ${{ env.VERSION_VARIABLE }}; print(${{ env.VERSION_VARIABLE }})")
+          # Try doing it with Python first:
+          VERSION=$(
+            python -c \
+            "from ${{ env.VERSION_MODULE }} import ${{ env.VERSION_VARIABLE }}; print(${{ env.VERSION_VARIABLE }})" \
+            2>/dev/null \
+            | head -1
+          )
+          if [ $? -ne 0 ] || [ -z "$VERSION" ]; then  # previous command had non-zero exit status or version is empty
+            echo "Failed to retrieve version with python. Attempting to parse it directly from file, with regexp..."
+            VERSION=$(
+              grep -oP "^\s*${{ env.VERSION_VARIABLE }}\s*=\s*['\"]\K[^'\"]+" "${{ env.VERSION_FILE }}" \
+              2>/dev/null \
+              | head -1
+            )
+          fi
+          if [ $? -ne 0 ] || [ -z "$VERSION" ]; then
+            echo "Error: Failed to retrieve version." >&2
+            exit 1
+          fi
           echo "Version string: $VERSION"
           echo "version=${VERSION}" >> $GITHUB_OUTPUT
 
-      - name: Parse Version 🧱
+      # TODO: get rid of the following bash insanity and just parse it with a special python script / shared module.
+      # Writing the output would use:
+      #   with open(os.environ['GITHUB_OUTPUT'], 'a') as fh:
+      #     print(f"{key}={value}", file=fh)
+#      - name: Parse Version with Python
+#        id: parse-with-python
+#        run: >-
+#          python parse_version.py
+#          "${{ steps.get_version_string.outputs.version }}"
+#        # Alternatively:
+#        #run: |
+#        #  python -c "
+#        #  # The entire python script inline
+#        #  version_str = '${{ steps.get_version_string.outputs.version }}'.lstrip('v')
+#        #  "
+
+      - name: Parse Version into parts 🧱
         id: parse
         # The main magic happens in regexps...
         # - `grep -qP`: verify that the tag matches the given pattern
@@ -121,29 +169,16 @@ jobs:
           echo "version_num=$VERSION_NUMBER" >> "$GITHUB_OUTPUT"
           echo "suffix=$SUFFIX" >> "$GITHUB_OUTPUT"
 
-      - name: Create tag 🏷️ from version
-        uses: actions/github-script@v7
-        with:
-          script: |
-            github.rest.git.createRef({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              ref: `refs/tags/${process.env.TAG}`,
-              sha: context.sha
-            })
-        env:
-          TAG: ${{ steps.parse.outputs.tag_name }}
-
   # --------------------------------------------------------
 
   build:
     name: Build distribution 📦
     needs: [detect-version]  # No need to even try, if we failed tag parsing
-    # Just to be nice - let's check the GitHub user and prevent unwanted auto-runs on forks made solely for a PR.
     if: >-
       github.repository_owner == 'Lex-DRL'
     # Second condition: only run on tag pushes...
-    # It was in the template from official tutorial, but it got redundant, since the only trigger is `on.push.tags`
+    # It was in the template from official tutorial, but it got redundant with our deep version parsing and verification
+    # Kept here just as a condition example:
     #  && startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
 
@@ -164,6 +199,8 @@ jobs:
         pip install
         build
         --user
+
+    # TODO: run tests before the build
 
     - name: Build a binary wheel and a source tarball
       run: python3 -m build
@@ -233,30 +270,43 @@ jobs:
   # --------------------------------------------------------
 
   github_release:
-      name: Create GitHub Release 🔄
-      needs: [build, detect-version]
-      runs-on: ubuntu-latest
-      permissions:
-        contents: write
-      steps:
-        - name: Checkout Code
-          uses: actions/checkout@v4
-          with:
-            fetch-depth: 0 # Fetch full history to avoid issues with tags and branches
+    name: Create GitHub Tag 🏷️ and Release 🔄
+    needs: [build, detect-version]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Fetch full history to avoid issues with tags and branches
 
-        - name: Download artifacts
-          uses: actions/download-artifact@v4
-          with:
-            name: python-package-distributions
-            path: dist/
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: python-package-distributions
+          path: dist/
 
-        - name: Create GitHub Release
-          id: create_release
-          env:
-            GH_TOKEN: ${{ github.token }}
-          run: >-
-            gh release create
-            ${{ needs.detect-version.outputs.tag_name }}
-            dist/*
-            --title ${{ needs.detect-version.outputs.tag_name }}
-            --generate-notes
+      - name: Create tag 🏷️ from version
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.git.createRef({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: `refs/tags/${process.env.TAG}`,
+              sha: context.sha
+            })
+        env:
+          TAG: ${{ needs.detect-version.outputs.tag_name }}
+
+      - name: Create GitHub Release 🔄
+        id: create_release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          gh release create
+          ${{ needs.detect-version.outputs.tag_name }}
+          dist/*
+          --title ${{ needs.detect-version.outputs.tag_name }}
+          --generate-notes
