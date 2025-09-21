@@ -270,7 +270,7 @@ jobs:
   # --------------------------------------------------------
 
   github_release:
-    name: Create GitHub Tag 🏷️ and Release 🔄
+    name: GitHub Tag 🏷️ + Release 🔄
     needs: [build, detect-version]
     runs-on: ubuntu-latest
     permissions:
