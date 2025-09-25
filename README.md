@@ -9,9 +9,9 @@
 [pypi-url]: https://pypi.org/p/docstring-to-text
 [github-release-shield]: https://img.shields.io/github/v/release/Lex-DRL/Py-docstring-to-text?logo=github
 [github-release-url]: https://github.com/Lex-DRL/Py-docstring-to-text/releases/latest
-</div>
 
-A simple pip package converting docstrings into clean text (proper paragraphs and indents).
+**A simple pip package converting docstrings into clean text.**<br />(proper paragraphs and indents)
+</div>
 
 For example, here's a class docstring:
 ```python
@@ -68,3 +68,8 @@ And...
 • Including unicode ones.
 And don't forget that the list still needs to be separated from the following text.
 ```
+
+## Contributing
+
+> [!NOTE]
+> The package uses _slightly_ PEP-non-compliant [code style](CODESTYLE.md).
