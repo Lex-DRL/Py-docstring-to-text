@@ -12,8 +12,8 @@ import typing as _t
 from inspect import cleandoc, getdoc
 import re as _re
 
-from .__package_meta import VERSION
-from .__package_meta import VERSION as __version__
+from .___package_meta import VERSION
+from .___package_meta import VERSION as __version__
 
 # TODO:
 # - lists

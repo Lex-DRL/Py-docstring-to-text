@@ -29,4 +29,4 @@ classifiers = [
 Issues = "https://github.com/Lex-DRL/Py-docstring-to-text/issues"
 
 [tool.hatch.version]
-path = "src/docstring_to_text/__package_meta.py"
+path = "src/docstring_to_text/___package_meta.py"
