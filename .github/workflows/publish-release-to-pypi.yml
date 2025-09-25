@@ -31,7 +31,7 @@ on:
     branches:
       - main
     paths:
-      - "src/docstring_to_text/__package_meta.py"
+      - "src/docstring_to_text/___package_meta.py"
 
 # ====== CONCURRENCY ======
 
@@ -39,7 +39,7 @@ on:
 concurrency:
   group: pypi-publish
   # To group by version:
-  #group: pypi-publish-${{ github.ref }}-${{ hashFiles('src/docstring_to_text/__package_meta.py') }}
+  #group: pypi-publish-${{ github.ref }}-${{ hashFiles('src/docstring_to_text/___package_meta.py') }}
   cancel-in-progress: false  # the second pending run is put into a queue, the third one is cancelled (GitHub limitation)
 
 # ======= ENV VARS =======
@@ -47,8 +47,8 @@ concurrency:
 env:
   # The name on PyPI:
   PACKAGE_NAME: 'docstring-to-text'
-  VERSION_FILE: 'src/docstring_to_text/__package_meta.py'
-  VERSION_MODULE: 'src.docstring_to_text.__package_meta'
+  VERSION_FILE: 'src/docstring_to_text/___package_meta.py'
+  VERSION_MODULE: 'src.docstring_to_text.___package_meta'
   VERSION_VARIABLE: 'VERSION'
 
 # ========= JOBS =========
