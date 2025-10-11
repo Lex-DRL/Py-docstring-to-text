@@ -16,3 +16,6 @@ def test_import_version():
 	except ImportError:
 		assert False, "Can't import the package version"
 	assert isinstance(VERSION, str)
+
+def test_broken():
+	assert False, "Intentionally broken test"
