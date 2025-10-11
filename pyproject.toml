@@ -28,5 +28,21 @@ classifiers = [
 "Source Code" = "https://github.com/Lex-DRL/Py-docstring-to-text"
 Issues = "https://github.com/Lex-DRL/Py-docstring-to-text/issues"
 
+[project.optional-dependencies]
+# For: pip install '.[test]'
+test = [
+	"pytest",
+	"pytest-cov",
+]
+
 [tool.hatch.version]
 path = "src/docstring_to_text/___package_meta.py"
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]  # Don't scan for tests anywhere else; speeds up test collection
+addopts = [
+	"--import-mode=importlib",  # Recommended for new projects to avoid sys.path manipulation issues
+	"-ra",  # Show summary of all test outcomes
+	"--ignore=tests/data/",  # Excludes this exact path from discovery
+]
