@@ -7,6 +7,9 @@
 """
 """
 
+import typing as _t
+from typing import Any as _A, Callable as _C, Optional as _O, Union as _U
+
 import pytest
 
 from docstring_to_text.___package_meta import _version_parts_gen
@@ -28,5 +31,5 @@ from docstring_to_text.___package_meta import _version_parts_gen
 		('0.1.2.beta.2', (0, 1, 2, 'beta', 2)),
 	]
 )
-def test__version_parts_gen(ver_str: str, ver_tuple: tuple[int | str, ...]):
+def test__version_parts_gen(ver_str: str, ver_tuple: _t.Tuple[_U[int, str], ...]):
 	assert tuple(_version_parts_gen(ver_str)) == ver_tuple
