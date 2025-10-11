@@ -7,7 +7,7 @@ build-backend = "hatchling.build"
 [project]
 name = "docstring-to-text"
 dynamic = ["version"]
-# version = "0.0.1"
+# version = "0.0.1" # used dynamically, see tool.hatch.version
 description = "A simple pip package converting docstrings into clean text (proper paragraphs and indents)"
 authors = [
 	{ name="Lex Darlog (Lex-DRL)" },
@@ -29,7 +29,7 @@ classifiers = [
 Issues = "https://github.com/Lex-DRL/Py-docstring-to-text/issues"
 
 [project.optional-dependencies]
-# For: pip install '.[test]'
+# For: pip install .[test]
 test = [
 	"pytest",
 	"pytest-cov",
@@ -45,4 +45,30 @@ addopts = [
 	"--import-mode=importlib",  # Recommended for new projects to avoid sys.path manipulation issues
 	"-ra",  # Show summary of all test outcomes
 	"--ignore=tests/data/",  # Excludes this exact path from discovery
+	"--cov=src/docstring_to_text",  # Measure the package coverage
+	"--cov-report=term-missing",  # Show missing lines in terminal
+	"--cov-fail-under=0",  # Never fail tests due to low coverage
 ]
+
+[tool.coverage.run]
+source = ["src/docstring_to_text"]
+omit = [
+	"*/tests/*",
+	"*/test_*",
+	"*/__pycache__/*",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+	"pragma: no cover",
+	"def __repr__",
+	"if self\\.debug",
+	"if settings\\.DEBUG",
+	"raise AssertionError",
+	"raise NotImplementedError",
+	"if 0:",
+	"if __name__ == [\"']__main__[\"']:",
+	"@(abc\\.)?abstractmethod",
+]
+ignore_errors = true
+precision = 2  # Number of shown decimal places. E.g.: 12.34%
