@@ -8,7 +8,7 @@
 """
 
 import typing as _t
-from typing import Any as _A, Callable as _C, Optional as _O, Union as _U
+from typing import Union as _U
 
 import pytest
 

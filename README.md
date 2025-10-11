@@ -8,7 +8,7 @@
 
 [pypi-shield]: https://img.shields.io/pypi/v/docstring-to-text?logo=pypi
 [pypi-url]: https://pypi.org/p/docstring-to-text
-[github-tests-shield]: https://github.com/Lex-DRL/Py-docstring-to-text/actions/workflows/test.yml/badge.svg
+[github-tests-shield]: https://github.com/Lex-DRL/Py-docstring-to-text/actions/workflows/test.yml/badge.svg?branch=main
 [github-tests-url]: https://github.com/Lex-DRL/Py-docstring-to-text/actions/workflows/test.yml?query=branch%3Amain
 [github-release-shield]: https://img.shields.io/github/v/release/Lex-DRL/Py-docstring-to-text?logo=github
 [github-release-url]: https://github.com/Lex-DRL/Py-docstring-to-text/releases/latest
