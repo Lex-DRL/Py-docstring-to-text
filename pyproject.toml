@@ -45,7 +45,7 @@ addopts = [
 	"--import-mode=importlib",  # Recommended for new projects to avoid sys.path manipulation issues
 	"-ra",  # Show summary of all test outcomes
 	"--ignore=tests/data/",  # Excludes this exact path from discovery
-	"--cov=src/docstring_to_text",  # Measure the package coverage
+	"--cov=docstring_to_text",  # Measure the package coverage
 	"--cov-report=term-missing",  # Show missing lines in terminal
 	"--cov-fail-under=0",  # Never fail tests due to low coverage
 ]

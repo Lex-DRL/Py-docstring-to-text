@@ -1,5 +1,4 @@
 # https://docs.github.com/en/actions/tutorials/build-and-test-code/python
-
 name: Test 🔬 package
 # Alt emojis: https://emojidb.org/debug-emojis 👀 🔎 👷 🚧 🛠️ 🔨 👾 🤖 👨🏻‍💻 🧐
 
@@ -33,7 +32,8 @@ jobs:
 
         # Python versions to test against:
         python-version:
-          - '3.7'
+          # > The version '3.7' with architecture 'x64' was not found for Ubuntu 24.04.
+          # - '3.7'  # seems no longer supported by GitHub
           - '3.8'
           - '3.9'
           - '3.10'
