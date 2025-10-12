@@ -48,6 +48,7 @@ jobs:
     # https://emojidb.org/query-emojis
     name: Detect version 🔢
     runs-on: ubuntu-latest
+    timeout-minutes: 5  # Prevent stuck jobs
 
     #permissions:
     #  contents: write
