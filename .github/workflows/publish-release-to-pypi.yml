@@ -26,7 +26,7 @@ name: Publish Python 🐍 distribution 📦 to PyPI
 #      - '[0-9]+.[0-9]**'
 
 on:
-  workflow_dispatch:
+  workflow_dispatch:  # Allow starting manually
   push:
     branches:
       - main
@@ -54,12 +54,24 @@ env:
 # ========= JOBS =========
 
 jobs:
+  test:
+    name: Run Tests 🔬
+    # Just to be nice - let's check the GitHub user and prevent unwanted auto-runs on forks made solely for a PR.
+    # A single condition (only in this job) is enough: all the other jobs depend on this one, and will be skipped.
+    # However, to prevent the workflow run entirely, *ALL* the jobs need to have the same condition.
+    if: github.repository_owner == 'Lex-DRL'
+    # Alternatively - ${{}} syntax (expression evaluation).
+    # Not needed here, but might be useful inside a script - GitHub would "pre-process" it
+    # and substitute with the actual value, like macros work in C:
+    # if: ${{ github.repository_owner == 'Lex-DRL' }}
+    uses: ./.github/workflows/test.yml
+
+  # --------------------------------------------------------
 
   detect-version:
     # https://emojidb.org/query-emojis
     name: Parse version 🔢
-    # Just to be nice - let's check the GitHub user and prevent unwanted auto-runs on forks made solely for a PR:
-    if: ${{ github.repository_owner == 'Lex-DRL' }}
+    needs: test
     runs-on: ubuntu-latest
     permissions:
       contents: write  # Needed for tag creation
@@ -78,6 +90,8 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.x"
+          cache: 'pip'  # Enable built-in pip caching
+          cache-dependency-path: 'pyproject.toml'
 
       - name: Extract version 🔢 from package meta 📝
         id: get_version_string
@@ -173,13 +187,11 @@ jobs:
 
   build:
     name: Build distribution 📦
-    needs: [detect-version]  # No need to even try, if we failed tag parsing
-    if: >-
-      github.repository_owner == 'Lex-DRL'
-    # Second condition: only run on tag pushes...
+    needs: [test, detect-version]  # No need to even try, if we failed the essential steps
+    # Extra condition: only run on tag pushes...
     # It was in the template from official tutorial, but it got redundant with our deep version parsing and verification
     # Kept here just as a condition example:
-    #  && startsWith(github.ref, 'refs/tags/v')
+    # if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
 
     steps:
@@ -192,6 +204,8 @@ jobs:
       uses: actions/setup-python@v5
       with:
         python-version: "3.x"
+        cache: 'pip'  # Enable built-in pip caching
+        cache-dependency-path: 'pyproject.toml'
 
     - name: Install pypa/build
       run: >-
@@ -199,8 +213,6 @@ jobs:
         pip install
         build
         --user
-
-    # TODO: run tests before the build
 
     - name: Build a binary wheel and a source tarball
       run: python3 -m build
@@ -216,9 +228,8 @@ jobs:
   publish-to-pypi:
     name: >-
       Publish Python 🐍 distribution 📦 to PyPI ⬆️
-    if: ${{ github.repository_owner == 'Lex-DRL' }}
     needs:
-    - build  # Requires the previous 'build' job to succeed
+     - build  # Requires the previous 'build' job to succeed
     runs-on: ubuntu-latest
 
     environment:
@@ -241,7 +252,6 @@ jobs:
 
 #  publish-to-testpypi:
 #    name: Publish Python 🐍 distribution 📦 to TestPyPI ❗
-#    if: ${{ github.repository_owner == 'Lex-DRL' }}
 #    needs:
 #    - build  # Requires the previous 'build' job to succeed
 #    runs-on: ubuntu-latest
@@ -271,7 +281,7 @@ jobs:
 
   github_release:
     name: GitHub Tag 🏷️ + Release 🔄
-    needs: [build, detect-version]
+    needs: [detect-version, build]
     runs-on: ubuntu-latest
     permissions:
       contents: write
