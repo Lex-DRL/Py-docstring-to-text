@@ -15,7 +15,7 @@ on:
           + to let callers define their own groups.
         required: false
         type: string
-        default: 'called'  # For other trigger events, should be empty
+        default: 'called'  # Empty for other trigger events (in this workflow)
 
   workflow_dispatch:  # ... or "launchable" manually
 
