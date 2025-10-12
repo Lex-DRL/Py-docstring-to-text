@@ -36,7 +36,7 @@ permissions:
 
 concurrency:
   group: version_parse-${{ inputs.concurrency_group_id }}-${{ github.event_name }}-${{ github.event.pull_request.number || github.sha }}
-  cancel-in-progress: ${{ inputs.concurrency_group_id == '' }}
+  cancel-in-progress: ${{ inputs.concurrency_group_id == '' }}  # Cancel running for direct triggers
 
 env:
   VERSION_FILE: 'src/docstring_to_text/___package_meta.py'
