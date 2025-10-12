@@ -63,6 +63,14 @@ jobs:
           - '3.14'
 
     steps:
+      - name: Debug
+        run: |
+          echo "Concurrency group: test-${{ github.event_name }}-${{ github.event.pull_request.number || github.sha }}"
+          echo "Cancel in progress: ${{ github.event_name != 'workflow_call' }}"
+          echo "Event name: ${{ github.event_name }}"
+          echo "SHA: ${{ github.sha }}"
+          echo "PR number: ${{ github.event.pull_request.number }}"
+
       - name: Checkout code
         uses: actions/checkout@v4
 
