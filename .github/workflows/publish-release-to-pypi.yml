@@ -71,6 +71,8 @@ jobs:
     name: Version 🔢
     needs: test
     uses: ./.github/workflows/version-parse.yml
+    with:
+      concurrency_group_id: 'publish'
 
   # --------------------------------------------------------
 

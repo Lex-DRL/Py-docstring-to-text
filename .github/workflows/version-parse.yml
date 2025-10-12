@@ -6,6 +6,15 @@ name: Parse version 🔢
 
 on:
   workflow_call:  # Callable from other workflows
+    inputs:
+      concurrency_group_id:
+        description: >-
+          Should be set to some non-empty string - to differentiate from direct test-workflow triggers
+          + to let callers define their own groups.
+        required: false
+        type: string
+        default: 'called'  # Empty for other trigger events (in this workflow)
+
     outputs:  # Pass the detected outputs to the calling workflow
       tag_name:
         description: "The full tag name: v1.0.0-alpha1"
@@ -26,8 +35,8 @@ permissions:
   contents: read
 
 concurrency:
-  group: version_parse-${{ github.event_name }}-${{ github.event.pull_request.number || github.sha }}
-  cancel-in-progress: ${{ github.event_name != 'workflow_call' }}
+  group: version_parse-${{ inputs.concurrency_group_id }}-${{ github.event_name }}-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: ${{ inputs.concurrency_group_id == '' }}
 
 env:
   VERSION_FILE: 'src/docstring_to_text/___package_meta.py'
