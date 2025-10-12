@@ -2,7 +2,7 @@
 
 # It should be a hard-coded string, as close to the beginning of file as possible,
 # for Hatchling build tools to properly parse it:
-VERSION = "1.0.4a1"
+VERSION = "1.0.4-a1"
 
 
 # =============================================================
