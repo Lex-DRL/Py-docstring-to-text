@@ -36,7 +36,7 @@ permissions:
 
 concurrency:
   group: test-${{ inputs.concurrency_group_id }}-${{ github.event_name }}-${{ github.event.pull_request.number || github.sha }}
-  cancel-in-progress: ${{ inputs.concurrency_group_id != 'direct-trigger' }}
+  cancel-in-progress: ${{ inputs.concurrency_group_id == '' }}
 
 jobs:
   test:
@@ -76,7 +76,7 @@ jobs:
         run: |
           echo "Concurrency group: test-${{ inputs.concurrency_group_id }}-${{ github.event_name }}-${{ github.event.pull_request.number || github.sha }}"
           echo "Concurrency group-ID: ${{ inputs.concurrency_group_id }}"
-          echo "Cancel in progress: ${{ inputs.concurrency_group_id != 'direct-trigger' }}"
+          echo "Cancel in progress: ${{ inputs.concurrency_group_id == '' }}"
           echo "Event name: ${{ github.event_name }}"
           echo "SHA: ${{ github.sha }}"
           echo "PR number: ${{ github.event.pull_request.number }}"

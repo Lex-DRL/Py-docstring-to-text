@@ -62,6 +62,8 @@ jobs:
     # and substitute with the actual value, like macros work in C:
     # if: ${{ github.repository_owner == 'Lex-DRL' }}
     uses: ./.github/workflows/test.yml
+    with:
+      concurrency_group_id: 'publish'
 
   # --------------------------------------------------------
 
