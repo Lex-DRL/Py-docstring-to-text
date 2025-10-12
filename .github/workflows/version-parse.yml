@@ -1,0 +1,149 @@
+name: Parse version 🔢
+
+on:
+  workflow_call:  # Callable from other workflows
+    outputs:  # Pass the detected outputs to the calling workflow
+      tag_name:
+        description: "The full tag name: v1.0.0-alpha1"
+        value: ${{ jobs.detect-version.outputs.tag_name }}
+      version_full:
+        description: "The full parsed and re-assembled version string (without 'v'): 1.0.0-alpha1"
+        value: ${{ jobs.detect-version.outputs.version_full }}
+      version_num:
+        description: "The numerical version part: 1.0.0"
+        value: ${{ jobs.detect-version.outputs.version_num }}
+      suffix:
+        description: "The suffix string if present: alpha1"
+        value: ${{ jobs.detect-version.outputs.suffix }}
+
+  workflow_dispatch:  # ... or "launchable" manually
+
+permissions:
+  contents: read
+
+concurrency:
+  group: version_parse-${{ github.event_name }}-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: ${{ github.event_name != 'workflow_call' }}
+
+env:
+  VERSION_FILE: 'src/docstring_to_text/___package_meta.py'
+  VERSION_MODULE: 'src.docstring_to_text.___package_meta'
+  VERSION_VARIABLE: 'VERSION'
+
+jobs:
+  detect-version:
+    # https://emojidb.org/query-emojis
+    name: Detect version 🔢
+    runs-on: ubuntu-latest
+
+    #permissions:
+    #  contents: write
+
+    outputs:
+      tag_name: ${{ steps.parse.outputs.tag_name }}
+      version_full: ${{ steps.parse.outputs.version_full }}
+      version_num: ${{ steps.parse.outputs.version_num }}
+      suffix: ${{ steps.parse.outputs.suffix }}
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Fetch full history to avoid issues with tags and branches
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+          cache: 'pip'  # Enable built-in pip caching
+          cache-dependency-path: 'pyproject.toml'
+
+      - name: Extract version 🔢 from package meta 📝
+        id: get_version_string
+        run: |
+          # Try doing it with Python first:
+          VERSION=$(
+            python -c \
+            "from ${{ env.VERSION_MODULE }} import ${{ env.VERSION_VARIABLE }}; print(${{ env.VERSION_VARIABLE }})" \
+            2>/dev/null \
+            | head -1
+          )
+          if [ $? -ne 0 ] || [ -z "$VERSION" ]; then  # previous command had non-zero exit status or version is empty
+            echo "Failed to retrieve version with python. Attempting to parse it directly from file, with regexp..."
+            VERSION=$(
+              grep -oP "^\s*${{ env.VERSION_VARIABLE }}\s*=\s*['\"]\K[^'\"]+" "${{ env.VERSION_FILE }}" \
+              2>/dev/null \
+              | head -1
+            )
+          fi
+          if [ $? -ne 0 ] || [ -z "$VERSION" ]; then
+            echo "Error: Failed to retrieve version." >&2
+            exit 1
+          fi
+          echo "Version string: $VERSION"
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+
+      # TODO: get rid of the following bash insanity and just parse it with a special python script / shared module.
+      # Writing the output would use:
+      #   with open(os.environ['GITHUB_OUTPUT'], 'a') as fh:
+      #     print(f"{key}={value}", file=fh)
+#      - name: Parse Version with Python
+#        id: parse-with-python
+#        run: >-
+#          python parse_version.py
+#          "${{ steps.get_version_string.outputs.version }}"
+#        # Alternatively:
+#        #run: |
+#        #  python -c "
+#        #  # The entire python script inline
+#        #  version_str = '${{ steps.get_version_string.outputs.version }}'.lstrip('v')
+#        #  "
+
+      - name: Parse Version into parts 🧱
+        id: parse
+        # The main magic happens in regexps...
+        # - `grep -qP`: verify that the tag matches the given pattern
+        # - `sed -E 's/regex_pattern/replacement/optional_flags'`, with '\1' in replacement meaning first group
+        # The regexp itself:
+        # - '^v?([0-9]+\.[0-9]+\.[0-9]+)' - matches 'v1.2.3' / '1.2.3' from start of the string, 'v' stripped
+        #   - '^' - start of the input string.
+        #   - 'v?(...)' - optional 'v' prefix (might be missing), and what follows is captured as a group.
+        #   - '[0-9]+' - a sequence of 1 or more digits.
+        #   - '\.' - literal dot (just '.' matches any character).
+        # - '(-.+)?$' - suffix captured as a group:
+        #   - '-' - just a hyphen.
+        #   - '.+' - any non-empty string (at least one any character - including another hyphen, dot or digit).
+        #   - '(...)?$' - a group that might be present or not.
+        #   - '$' - the end of the input string.
+        run: |
+          VERSION_STR="${{ steps.get_version_string.outputs.version }}"
+          echo "Version string: $VERSION_STR"
+          if echo "$VERSION_STR" | grep -qP '^v?[0-9]+\.[0-9]+\.[0-9]+(-.+)?$'; then
+            VERSION_NUMBER=$(echo "$VERSION_STR" | sed -E 's/^v?([0-9]+\.[0-9]+\.[0-9]+)(-.+)?$/\1/')
+            echo "Version number: $VERSION_NUMBER"
+            if echo "$VERSION_STR" | grep -q '-'; then
+              # We can only get into this branch if the initial grep regex worked AND '-' is there
+              # So it's '[v]1.2.3-something'
+              SUFFIX=$(echo "$VERSION_STR" | sed -E 's/^v?([0-9]+\.[0-9]+\.[0-9]+)-(.+)$/\2/')
+              if echo "$SUFFIX" | grep -q '-'; then
+                echo "Invalid suffix (it contains hyphen): $SUFFIX" >&2
+                exit 1
+              fi
+              SUFFIX_WITH_SEP=$(echo "-$SUFFIX")
+            else
+              SUFFIX=""
+              SUFFIX_WITH_SEP=""
+            fi
+            echo "Suffix: $SUFFIX"
+          else
+            echo "Version string doesn't match the '[v]1.2.3[-suffix]' pattern: $VERSION_STR" >&2
+            exit 1
+          fi
+          VERSION_FULL=$(echo "${VERSION_NUMBER}${SUFFIX_WITH_SEP}")
+          echo "Full parsed Version: $VERSION_FULL"
+          TAG_NAME=$(echo "v${VERSION_FULL}")
+          echo "Tag name: $TAG_NAME"
+          echo "tag_name=$TAG_NAME" >> "$GITHUB_OUTPUT"
+          echo "version_full=$VERSION_FULL" >> "$GITHUB_OUTPUT"
+          echo "version_num=$VERSION_NUMBER" >> "$GITHUB_OUTPUT"
+          echo "suffix=$SUFFIX" >> "$GITHUB_OUTPUT"
