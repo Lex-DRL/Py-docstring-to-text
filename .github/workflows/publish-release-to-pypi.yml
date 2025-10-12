@@ -69,7 +69,10 @@ jobs:
 
   detect-version:
     name: Version 🔢
-    needs: test
+    # No need to depend on test - even better, failed version parsing might cancel faulty workflow run early.
+    # But if the job doesn't depend on test, let's introduce author-check condition once again.
+    # needs: test
+    if: github.repository_owner == 'Lex-DRL'
     uses: ./.github/workflows/version-parse.yml
     with:
       concurrency_group_id: 'publish'
@@ -84,6 +87,7 @@ jobs:
     # Kept here just as a condition example:
     # if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     steps:
     - name: Checkout Code
@@ -119,9 +123,9 @@ jobs:
   publish-to-pypi:
     name: >-
       Publish Python 🐍 distribution 📦 to PyPI ⬆️
-    needs:
-     - build  # Requires the previous 'build' job to succeed
+    needs: build
     runs-on: ubuntu-latest
+    timeout-minutes: 5
 
     environment:
       name: pypi
@@ -146,6 +150,7 @@ jobs:
 #    needs:
 #    - build  # Requires the previous 'build' job to succeed
 #    runs-on: ubuntu-latest
+#    timeout-minutes: 5
 #
 #    environment:
 #      #name: testpypi
@@ -172,10 +177,15 @@ jobs:
 
   github_release:
     name: GitHub Tag 🏷️ + Release 🔄
-    needs: [detect-version, build]
+    needs:
+      - detect-version
+      - build
     runs-on: ubuntu-latest
+    timeout-minutes: 5
+
     permissions:
       contents: write
+
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
