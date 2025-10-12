@@ -3,6 +3,9 @@ name: Tests 🔬
 # Alt emojis: https://emojidb.org/debug-emojis 👀 🔎 👷 🚧 🛠️ 🔨 👾 🤖 👨🏻‍💻 🧐
 
 on:
+  workflow_call:  # Make the workflow reusable in other workflows
+  workflow_dispatch:  # ... or "launchable" manually
+
   push:
     branches: [ main ]
     paths:
@@ -18,8 +21,21 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: test-${{ github.event_name }}-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: ${{ github.event_name != 'workflow_call' }}
+
 jobs:
   test:
+    # Just to be nice with forked repos made solely for a PR - let's run only if:
+    # - it's an original repo and NOT a fork
+    # - or it was triggered manually
+    # - or called (reused) from another workflow
+    if: |
+      github.repository_owner == 'Lex-DRL' ||
+      github.event_name == 'workflow_dispatch' ||
+      github.event_name == 'workflow_call'
+
     # runs-on: ${{ matrix.os }}  # when multi-OS-testing specified below
     runs-on: ubuntu-latest
     timeout-minutes: 5  # Prevent stuck jobs
