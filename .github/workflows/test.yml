@@ -8,6 +8,15 @@ name: Tests 🔬
 
 on:
   workflow_call:  # Make the workflow reusable in other workflows
+    inputs:
+      concurrency_group_id:
+        description: >-
+          Should be set to some non-empty string - to differentiate from direct test-workflow triggers
+          + to let callers define their own groups.
+        required: false
+        type: string
+        default: 'called'  # For other trigger events, should be empty
+
   workflow_dispatch:  # ... or "launchable" manually
 
   push:
@@ -26,8 +35,8 @@ permissions:
   contents: read
 
 concurrency:
-  group: test-${{ github.event_name }}-${{ github.event.pull_request.number || github.sha }}
-  cancel-in-progress: ${{ github.event_name != 'workflow_call' }}
+  group: test-${{ inputs.concurrency_group_id }}-${{ github.event_name }}-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: ${{ inputs.concurrency_group_id != 'direct-trigger' }}
 
 jobs:
   test:
@@ -65,8 +74,9 @@ jobs:
     steps:
       - name: Debug
         run: |
-          echo "Concurrency group: test-${{ github.event_name }}-${{ github.event.pull_request.number || github.sha }}"
-          echo "Cancel in progress: ${{ github.event_name != 'workflow_call' }}"
+          echo "Concurrency group: test-${{ inputs.concurrency_group_id }}-${{ github.event_name }}-${{ github.event.pull_request.number || github.sha }}"
+          echo "Concurrency group-ID: ${{ inputs.concurrency_group_id }}"
+          echo "Cancel in progress: ${{ inputs.concurrency_group_id != 'direct-trigger' }}"
           echo "Event name: ${{ github.event_name }}"
           echo "SHA: ${{ github.sha }}"
           echo "PR number: ${{ github.event.pull_request.number }}"
