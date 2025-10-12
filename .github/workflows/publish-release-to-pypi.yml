@@ -47,9 +47,6 @@ concurrency:
 env:
   # The name on PyPI:
   PACKAGE_NAME: 'docstring-to-text'
-  VERSION_FILE: 'src/docstring_to_text/___package_meta.py'
-  VERSION_MODULE: 'src.docstring_to_text.___package_meta'
-  VERSION_VARIABLE: 'VERSION'
 
 # ========= JOBS =========
 
