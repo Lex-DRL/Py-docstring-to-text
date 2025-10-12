@@ -4,7 +4,7 @@
 
 # https://docs.github.com/en/actions/tutorials/build-and-test-code/python
 name: Tests 🔬
-# Alt emojis: https://emojidb.org/debug-emojis 👀 🔎 👷 🚧 🛠️ 🔨 👾 🤖 👨🏻‍💻 🧐
+# Alt emojis: https://emojidb.org/debug-emojis 👀 🔎 👷 🚧 🛠️ 🔨 👾 🤖 👨🏻‍💻 🧐 🏗️
 
 on:
   workflow_call:  # Make the workflow reusable in other workflows
