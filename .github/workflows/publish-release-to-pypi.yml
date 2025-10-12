@@ -69,7 +69,7 @@ jobs:
   # --------------------------------------------------------
 
   detect-version:
-    name: Detect version 🔢
+    name: Version 🔢
     needs: test
     uses: ./.github/workflows/version-parse.yml
 
