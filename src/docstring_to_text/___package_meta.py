@@ -1,5 +1,9 @@
 # encoding: utf-8
 
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
 # It should be a hard-coded string, as close to the beginning of file as possible,
 # for Hatchling build tools to properly parse it:
 VERSION = "1.0.4-alpha2"
