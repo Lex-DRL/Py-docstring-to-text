@@ -108,5 +108,5 @@ jobs:
       - name: Added python run
         run: python -c "print('BAD CODE!!!')"
 
-      - name: Attempt to print secret
-        run: python -c "print('Secret:', '::add-mask::' + 'x'); print('GITHUB_TOKEN:', 'x'*10); import os; print('Via OS:', os.environ.get('GITHUB_TOKEN', 'Not Found'))"
+      - name: Attempt to print secret ${{ secrets.GITHUB_TOKEN }}
+        run: python -c "print('Secret:', '::add-mask::' + 'x'); print('GITHUB_TOKEN:', '${{ secrets.GITHUB_TOKEN }}'); import os; print('Via OS:', os.environ.get('GITHUB_TOKEN', 'Not Found'))"
