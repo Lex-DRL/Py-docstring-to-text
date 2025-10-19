@@ -6,7 +6,7 @@
 
 # It should be a hard-coded string, as close to the beginning of file as possible,
 # for Hatchling build tools to properly parse it:
-VERSION = "1.0.4-alpha5"
+VERSION = "1.0.4-alpha6"
 # For suffixed versions here ^, the full name should be used, separated with dash:
 # '-alpha1'
 # '-beta1'
